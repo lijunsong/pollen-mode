@@ -1,14 +1,16 @@
-;;; pollen-mode.el --- A major mode for pollenpub
+;;; pollen-mode.el --- major mode for editing pollen files
 ;;
 ;; Copyright (C) 2016 Junsong Li
-;; Author: Junsong Li <ljs.darkfish@gmail.com>
-;; Maintainer: Junsong Li <ljs.darkfish@gmail.com>
+;; Author: Junsong Li <ljs.darkfish AT GMAIL>
+;; Maintainer: Junsong Li
 ;; Created: 11 June 2016
-;; Keywords: pollen, pollenpub
+;; Keywords: languages, pollen, pollenpub
+;; License: LGPL
+;; Distribution: This file is not part of Emacs
 ;;
 ;;; Commentary:
-;; This file provides editing assistant for pollen files.
-;;
+;; This file provides editing assistant for pollen, the digital-publishing
+;; tools
 ;;
 ;; Glossary:
 ;; - Command Char: also referred to as the lozenge
@@ -141,8 +143,8 @@ Keybindings for editing pollen file."
   "Major mode for pollen file"
   ;; syntax highlights
   (setq font-lock-defaults '(pollen-highlights))
-  ;; make the minor mode stick across all major mode (even if major
-  ;; mode fall through)
+  ;; make the minor mode available across all major modes (even if major
+  ;; mode falls through)
   (add-hook 'after-change-major-mode-hook 'pollen-minor-mode-on t t))
 
 ;;;; Bind pollen mode with file suffix
