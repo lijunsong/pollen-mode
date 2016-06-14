@@ -4,7 +4,7 @@ An Emacs major mode for editing [pollen file](http://docs.racket-lang.org/pollen
 
 The major mode provides font locking for
 
-- malformed (dangling) command charater
+- malformed (dangling) command character
 - comment
 - tag functions
 
