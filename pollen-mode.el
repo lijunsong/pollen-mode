@@ -248,9 +248,9 @@ Keybindings for editing pollen file."
 ;; together with (add-hook * * * t) pollen will be always on.
 (put 'pollen-minor-mode-on 'permanent-local-hook t)
 
-(defun pollen--mark-generic-comment (pos)
-  "A warper for put generic comment text property at POS and (POS+1)."
-  (put-text-property pos (1+ pos) 'syntax-table (string-to-syntax "!")))
+(defun pollen--mark-comment-delimiter-at (pos ty)
+  "A warper for put comment text property at POS and (POS+1) of type TY."
+  (put-text-property pos (1+ pos) 'syntax-table (string-to-syntax ty)))
 
 (defun pollen--propertize-comment ()
   "Fix pollen comments in syntax table."
@@ -259,8 +259,8 @@ Keybindings for editing pollen file."
          (beg (pollen--tag-lbraces tag))
          (end (pollen--tag-rbraces tag)))
     (when (and tag (string-equal (pollen--tag-name tag) ";") beg end)
-      (pollen--mark-generic-comment beg)
-      (pollen--mark-generic-comment end)
+      (pollen--mark-comment-delimiter-at beg "< bn")
+      (pollen--mark-comment-delimiter-at end "> bn")
       (when (< end pos)
         ;; previous comment is not propertized yet, do it again
         (pollen--propertize-comment)))))
@@ -270,7 +270,7 @@ Keybindings for editing pollen file."
   (syntax-propertize-rules
    ("◊;{" (0 (ignore
               (pollen--propertize-comment))))
-   ("}" (0 (when (eq (nth 7 (syntax-ppss)) 'syntax-table)
+   ("}" (0 (when (nth 7 (syntax-ppss))
              ;; when modifying text at the same line of the comment
              ;; closing "}", its text property will be cleaned. Mark
              ;; "}" as a comment delimiter again.
@@ -279,7 +279,9 @@ Keybindings for editing pollen file."
                  (let ((parse-sexp-lookup-properties nil))
                    (backward-sexp 1)
                    (when (char-equal ?\; (char-before))
-                     (pollen--mark-generic-comment (1- end)))))))))))
+                     ;; if its counterpart is a start pos of comment,
+                     ;; mark it as comment end
+                     (pollen--mark-comment-delimiter-at (1- end) "> bn"))))))))))
 
 (define-derived-mode pollen-mode fundamental-mode
   "pollen"
