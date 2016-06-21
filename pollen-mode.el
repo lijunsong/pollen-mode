@@ -32,10 +32,12 @@
 (defun pollen-gen-highlights (command-char)
   "Generate highlight given the pollen COMMAND-CHAR."
   (let ((id (concat command-char pollen-racket-id-reg))
-        (malform (concat command-char "[ \\n]+")))
+        (malform1 (concat command-char "[ \\n]+"))
+        (malform2 (concat command-char "{")))
     `((,id . font-lock-variable-name-face)
       (,pollen-header-reg . font-lock-comment-face)
-      (,malform . font-lock-warning-face))))
+      (,malform1 . font-lock-warning-face)
+      (,malform2 . font-lock-warning-face))))
 
 (defvar pollen-highlights
   (pollen-gen-highlights pollen-command-char)
@@ -46,7 +48,9 @@
   "Create tag object.
 
 A tag object has NAME (command char excluded), left brace LB and
-right brace RB pos."
+right brace RB pos.
+
+Note: for |{, LB points to |."
   (list name lb rb))
 
 (defun pollen--tag-name (tag)
@@ -65,7 +69,9 @@ right brace RB pos."
   "Get to the right brace matched with a left brace at position POS.
 
 Return the position of the right brace,  nil if the given pos is
-not a left brace or there is no matched one."
+not a left brace or there is no matched one.
+
+Note: this function jumps over the \"|\" of \"|{\"."
   (let (p
         ;; since we're sometimes treating left braces as comment
         ;; delimiters, it is important froward-sexp not obey syntax
@@ -73,7 +79,9 @@ not a left brace or there is no matched one."
         (parse-sexp-lookup-properties nil))
     (save-excursion
       (goto-char pos)
-      (when (char-equal (char-after pos) ?\{)
+      (if (looking-at "|")
+          (forward-char))
+      (when (char-equal (char-after) ?\{)
         (ignore-errors
           (forward-sexp 1)
           (backward-char 1)
@@ -90,7 +98,7 @@ starting with command char."
   (let* ((forward-allowed "A-Za-z0-9-*=:$")
          (backward-allowed (concat
                             pollen-command-char
-                            forward-allowed ";"))
+                            forward-allowed ";|"))
          (beg  (save-excursion
                  (skip-chars-backward backward-allowed)
                  (if (looking-at pollen-command-char)
@@ -123,31 +131,41 @@ after a comment start character, the parsing state may not mark
 it a comment start yet, in this case the tagobj found is a tag
 prior to current tag."
   (let* ((tag (pollen-tag-at-point t))
-         (ppss (syntax-ppss)))
-    (cond ((and tag (string-prefix-p pollen-command-char tag))
+         (parse-sexp-lookup-properties nil)
+         (make-tag
+          #'(lambda ()
+              (let ((tag (pollen-tag-at-point t)))
+                (when tag
+                  ;; make sure bounds is not nil
+                  (let ((bounds (bounds-of-thing-at-point 'pollen--tag))
+                        (name (substring tag 1)))
+                    (unless (string-empty-p name)
+                      (let ((lb-pos (if (char-equal (char-after (cdr bounds)) ?\|)
+                                        (1+ (cdr bounds))
+                                      (cdr bounds))))
+                        (pollen--make-tag
+                         name lb-pos
+                         (pollen--matched-right-brace-pos lb-pos))))))))))
+    (cond (tag
            ;; in the front or the middle of a tag name
-           (let ((bounds (bounds-of-thing-at-point 'pollen--tag))
-                 (name (substring tag 1)))
-             (unless (string-empty-p name)
-               (let ((lb-pos (cdr bounds)))
-                 (when (char-equal (char-after lb-pos) ?\{)
-                   (pollen--make-tag
-                    name lb-pos
-                    (pollen--matched-right-brace-pos lb-pos)))))))
-          ((nth 4 ppss)
-           ;; if in comment
-           (save-excursion
-             (goto-char (1- (nth 8 ppss)))
-             (pollen--get-current-tagobj)))
-          ((null (nth 1 ppss))
-           ;; this could happen is the cursor is on the toplevel
-           nil)
+           (funcall make-tag))
           (t
-           ;; inside braces or tag is null (This could happend when
-           ;; the cursor is between punctuation and a space)
+           ;; search backward
            (save-excursion
-             (goto-char (nth 1 ppss))
-             (pollen--get-current-tagobj))))))
+             (let (result
+                   (ttt 0))
+               (while (and (null result)
+                           (progn
+                             (skip-chars-backward  "^{}")
+                             (not (= (point) (point-min))))
+                           (< ttt 1000))
+                 (setq ttt (1+ ttt))
+                 (cond ((char-equal ?\} (char-before))
+                        (backward-sexp 1))
+                       ((char-equal ?\{ (char-before))
+                        (backward-char 2)
+                        (setq result (funcall make-tag)))))
+               result))))))
 
 (defun pollen-insert-tab-or-command-char (&optional arg)
   "Insert a tab or a command char in the document.
@@ -254,7 +272,7 @@ Keybindings for editing pollen file."
               (pollen--propertize-comment))))
    ("}" (0 (when (eq (nth 7 (syntax-ppss)) 'syntax-table)
              ;; when modifying text at the same line of the comment
-             ;; closing "}", all text properties will be cleaned. Mark
+             ;; closing "}", its text property will be cleaned. Mark
              ;; "}" as a comment delimiter again.
              (let ((end (match-end 0)))
                (save-excursion
@@ -262,9 +280,6 @@ Keybindings for editing pollen file."
                    (backward-sexp 1)
                    (when (char-equal ?\; (char-before))
                      (pollen--mark-generic-comment (1- end)))))))))))
-
-(defconst pollen-font-lock-keywords nil
-  "Font lock keywords for Pollen Mode.")
 
 (define-derived-mode pollen-mode fundamental-mode
   "pollen"
@@ -274,7 +289,7 @@ Keybindings for editing pollen file."
   (setq-local parse-sexp-lookup-properties nil)
 
   (set (make-local-variable 'font-lock-defaults)
-       '((pollen-font-lock-keywords) nil nil))
+       '((pollen-highlights) nil nil))
   (set (make-local-variable 'syntax-propertize-function)
        pollen--syntax-propertize-function)
   ;; make the minor mode available across all major modes (even if major
