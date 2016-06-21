@@ -230,6 +230,10 @@ Keybindings for editing pollen file."
 ;; together with (add-hook * * * t) pollen will be always on.
 (put 'pollen-minor-mode-on 'permanent-local-hook t)
 
+(defun pollen--mark-generic-comment (pos)
+  "A warper for put generic comment text property at POS and (POS+1)."
+  (put-text-property pos (1+ pos) 'syntax-table (string-to-syntax "!")))
+
 (defun pollen--propertize-comment ()
   "Fix pollen comments in syntax table."
   (let* ((pos (match-end 0))
@@ -237,10 +241,8 @@ Keybindings for editing pollen file."
          (beg (pollen--tag-lbraces tag))
          (end (pollen--tag-rbraces tag)))
     (when (and tag (string-equal (pollen--tag-name tag) ";") beg end)
-      (put-text-property beg (1+ beg)
-                         'syntax-table (string-to-syntax "!"))
-      (put-text-property end (1+ end)
-                         'syntax-table (string-to-syntax "!"))
+      (pollen--mark-generic-comment beg)
+      (pollen--mark-generic-comment end)
       (when (< end pos)
         ;; previous comment is not propertized yet, do it again
         (pollen--propertize-comment)))))
@@ -249,7 +251,17 @@ Keybindings for editing pollen file."
 (defconst pollen--syntax-propertize-function
   (syntax-propertize-rules
    ("◊;{" (0 (ignore
-              (pollen--propertize-comment))))))
+              (pollen--propertize-comment))))
+   ("}" (0 (when (eq (nth 7 (syntax-ppss)) 'syntax-table)
+             ;; when modifying text at the same line of the comment
+             ;; closing "}", all text properties will be cleaned. Mark
+             ;; "}" as a comment delimiter again.
+             (let ((end (match-end 0)))
+               (save-excursion
+                 (let ((parse-sexp-lookup-properties nil))
+                   (backward-sexp 1)
+                   (when (char-equal ?\; (char-before))
+                     (pollen--mark-generic-comment (1- end)))))))))))
 
 (defconst pollen-font-lock-keywords nil
   "Font lock keywords for Pollen Mode.")
