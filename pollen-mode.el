@@ -19,29 +19,27 @@
 ;;
 ;; TODO:
 ;; - provide a brace matcher
+;; - support comment-dwim
 ;;; Code:
 
 (defvar pollen-command-char "◊")
+(defvar pollen-command-char-code ?\u25CA)
 (defvar pollen-command-char-target "@")
 
 (defvar pollen-racket-id-reg "[a-zA-Z][a-zA-Z0-9-]*")
-(defvar pollen-header-reg "#lang .*$")
+(defvar pollen-header-reg "^#lang .*$")
 
 (defun pollen-gen-highlights (command-char)
   "Generate highlight given the pollen COMMAND-CHAR."
   (let ((id (concat command-char pollen-racket-id-reg))
-        (malform (concat command-char "[ \\n]+"))
-        (comment1 (concat command-char ";\\s\(.*\)"))
-        (comment2 (concat command-char ";.*$")))
+        (malform (concat command-char "[ \\n]+")))
     `((,id . font-lock-variable-name-face)
       (,pollen-header-reg . font-lock-comment-face)
-      (,malform . font-lock-warning-face)
-      (,comment1 . font-lock-comment-face)
-      (,comment2 . font-lock-comment-face))))
+      (,malform . font-lock-warning-face))))
 
 (defvar pollen-highlights
   (pollen-gen-highlights pollen-command-char)
-  "Regexp for font lock in pollen.")
+  "Font lock in pollen.")
 
 ;;; Pollen model
 (defun pollen--make-tag (name lb rb)
@@ -68,16 +66,18 @@ right brace RB pos."
 
 Return the position of the right brace,  nil if the given pos is
 not a left brace or there is no matched one."
-  (let (p)
+  (let (p
+        ;; since we're sometimes treating left braces as comment
+        ;; delimiters, it is important froward-sexp not obey syntax
+        ;; table
+        (parse-sexp-lookup-properties nil))
     (save-excursion
       (goto-char pos)
       (when (char-equal (char-after pos) ?\{)
-        (condition-case nil
-            (progn
-              (forward-sexp 1)
-              (backward-char 1)
-              (setq p (point)))
-          (error nil))))
+        (ignore-errors
+          (forward-sexp 1)
+          (backward-char 1)
+          (setq p (point)))))
     p))
 
 ;; special case for things at point
@@ -90,7 +90,7 @@ starting with command char."
   (let* ((forward-allowed "A-Za-z0-9-*=:$")
          (backward-allowed (concat
                             pollen-command-char
-                            forward-allowed))
+                            forward-allowed ";"))
          (beg  (save-excursion
                  (skip-chars-backward backward-allowed)
                  (if (looking-at pollen-command-char)
@@ -98,10 +98,9 @@ starting with command char."
                    nil)))
          (end (save-excursion
                 (skip-chars-forward forward-allowed)
-                (if (and (= (- (point) beg) 1) (looking-at ";"))
+                (if (and beg (eq (- (point) beg) 1) (looking-at ";"))
                     (1+ (point))
                   (point)))))
-    (message "beg %d. end %d." beg end)
     (if (and beg end)
         (cons beg end)
       nil)))
@@ -111,24 +110,35 @@ starting with command char."
 NO-PROPERTIES will be passed to `thing-at-point'."
   (thing-at-point 'pollen--tag no-properties))
 
-
 (defun pollen--get-current-tagobj ()
   "Get a tag object under the cursor.
 
-It returns nil when the cursor is on the toplevel, the tag object
-of the enclosing tag otherwise."
-  (let* ((tag (thing-at-point 'symbol t))
+It returns nil when the cursor is on the toplevel.  It returns
+the tag object of the enclosing tag otherwise.
+
+Implementation Caveat: This function jumps to comment start using
+parsing state from `syntax-ppss'.  Use it with causion in
+`syntax-propertize-function', because when the position is right
+after a comment start character, the parsing state may not mark
+it a comment start yet, in this case the tagobj found is a tag
+prior to current tag."
+  (let* ((tag (pollen-tag-at-point t))
          (ppss (syntax-ppss)))
     (cond ((and tag (string-prefix-p pollen-command-char tag))
            ;; in the front or the middle of a tag name
-           (let ((bounds (bounds-of-thing-at-point 'symbol))
+           (let ((bounds (bounds-of-thing-at-point 'pollen--tag))
                  (name (substring tag 1)))
-             (unless (string= name "")
+             (unless (string-empty-p name)
                (let ((lb-pos (cdr bounds)))
                  (when (char-equal (char-after lb-pos) ?\{)
                    (pollen--make-tag
                     name lb-pos
                     (pollen--matched-right-brace-pos lb-pos)))))))
+          ((nth 4 ppss)
+           ;; if in comment
+           (save-excursion
+             (goto-char (1- (nth 8 ppss)))
+             (pollen--get-current-tagobj)))
           ((null (nth 1 ppss))
            ;; this could happen is the cursor is on the toplevel
            nil)
@@ -220,36 +230,39 @@ Keybindings for editing pollen file."
 ;; together with (add-hook * * * t) pollen will be always on.
 (put 'pollen-minor-mode-on 'permanent-local-hook t)
 
-(defun pollen--fix-comment-left ()
-  "Test."
-  ;; (point) inside this function always points to a pos right after
-  ;; REGEXP
-  (let ((comment-beg (point))
-        (comment-end (when (pollen--goto-enclosing-right-brace)
-                       (point))))
-    (message "%d -- %d" comment-beg comment-end)
-    (put-text-property comment-beg (1+ comment-beg)
-                       'syntax-table (string-to-syntax "!"))
-    (when comment-end
-      (put-text-property comment-end (1+ comment-end)
-                         'syntax-table (string-to-syntax "!")))))
-(defun pollen--fix-comment-right ()
-  "Test."
-  (backward-char 1)
-  (let ((comment-beg ()))))
+(defun pollen--propertize-comment ()
+  "Fix pollen comments in syntax table."
+  (let* ((pos (match-end 0))
+         (tag (pollen--get-current-tagobj))
+         (beg (pollen--tag-lbraces tag))
+         (end (pollen--tag-rbraces tag)))
+    (when (and tag (string-equal (pollen--tag-name tag) ";") beg end)
+      (put-text-property beg (1+ beg)
+                         'syntax-table (string-to-syntax "!"))
+      (put-text-property end (1+ end)
+                         'syntax-table (string-to-syntax "!"))
+      (when (< end pos)
+        ;; previous comment is not propertized yet, do it again
+        (pollen--propertize-comment)))))
+
 
 (defconst pollen--syntax-propertize-function
   (syntax-propertize-rules
-   ("◊;{" (0 (ignore (pollen--fix-comment))))
-   ("}" (0 (ignore (pollen--fix-comment))))))
+   ("◊;{" (0 (ignore
+              (pollen--propertize-comment))))))
+
+(defconst pollen-font-lock-keywords nil
+  "Font lock keywords for Pollen Mode.")
 
 (define-derived-mode pollen-mode fundamental-mode
   "pollen"
   "Major mode for pollen file"
   ;; syntax highlights
   (set (make-local-variable 'parse-sexp-ignore-comments) nil)
-  (set (make-local-variable 'parse-sexp-lookup-properties) t)
-  (set (make-local-variable 'font-lock-defaults) '(pollen-highlights))
+  (setq-local parse-sexp-lookup-properties nil)
+
+  (set (make-local-variable 'font-lock-defaults)
+       '((pollen-font-lock-keywords) nil nil))
   (set (make-local-variable 'syntax-propertize-function)
        pollen--syntax-propertize-function)
   ;; make the minor mode available across all major modes (even if major
