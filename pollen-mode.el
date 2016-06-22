@@ -22,8 +22,8 @@
 ;; - support comment-dwim
 ;;; Code:
 
-(defvar pollen-command-char "◊")
 (defvar pollen-command-char-code ?\u25CA)
+(defvar pollen-command-char (char-to-string pollen-command-char-code))
 (defvar pollen-command-char-target "@")
 
 (defvar pollen-racket-id-reg "[a-zA-Z][a-zA-Z0-9-]*")
@@ -42,6 +42,10 @@
 (defvar pollen-highlights
   (pollen-gen-highlights pollen-command-char)
   "Font lock in pollen.")
+
+(defun pollen-tag (name)
+  "Concat commond char to the given NAME."
+  (concat pollen-command-char name))
 
 ;;; Pollen model
 (defun pollen--make-tag (name lb rb)
@@ -109,7 +113,7 @@ starting with command char."
                 (if (and beg (eq (- (point) beg) 1) (looking-at ";"))
                     (1+ (point))
                   (point)))))
-    (if (and beg end)
+    (if (and beg end (not (= beg end)))
         (cons beg end)
       nil)))
 
@@ -130,8 +134,7 @@ parsing state from `syntax-ppss'.  Use it with causion in
 after a comment start character, the parsing state may not mark
 it a comment start yet, in this case the tagobj found is a tag
 prior to current tag."
-  (let* ((tag (pollen-tag-at-point t))
-         (parse-sexp-lookup-properties nil)
+  (let* ((parse-sexp-lookup-properties nil)
          (make-tag
           #'(lambda ()
               (let ((tag (pollen-tag-at-point t)))
@@ -146,7 +149,7 @@ prior to current tag."
                         (pollen--make-tag
                          name lb-pos
                          (pollen--matched-right-brace-pos lb-pos))))))))))
-    (cond (tag
+    (cond ((pollen-tag-at-point t)
            ;; in the front or the middle of a tag name
            (funcall make-tag))
           (t
@@ -158,7 +161,7 @@ prior to current tag."
                            (progn
                              (skip-chars-backward  "^{}")
                              (not (= (point) (point-min))))
-                           (< ttt 1000))
+                           (< ttt 10))
                  (setq ttt (1+ ttt))
                  (cond ((char-equal ?\} (char-before))
                         (backward-sexp 1))
@@ -237,7 +240,7 @@ pollen."
 
 Keybindings for editing pollen file."
   nil
-  " PM"
+  " PM" ; TODO: better name @->loz
   :keymap pollen-mode-map
   :group 'pollen)
 
@@ -248,40 +251,64 @@ Keybindings for editing pollen file."
 ;; together with (add-hook * * * t) pollen will be always on.
 (put 'pollen-minor-mode-on 'permanent-local-hook t)
 
-(defun pollen--mark-comment-delimiter-at (pos ty)
-  "A warper for put comment text property at POS and (POS+1) of type TY."
+(defun pollen--put-text-property-at (pos ty)
+  "A warper for put at POS and (POS+1) text property of comment type TY."
   (put-text-property pos (1+ pos) 'syntax-table (string-to-syntax ty)))
 
 (defun pollen--propertize-comment ()
-  "Fix pollen comments in syntax table."
+  "Fix pollen comments in syntax table.
+Return t if propertize actually takes place, nil otherwise."
   (let* ((pos (match-end 0))
          (tag (pollen--get-current-tagobj))
          (beg (pollen--tag-lbraces tag))
          (end (pollen--tag-rbraces tag)))
+    (when end
+      (message "2. unmark ; at %d" (match-beginning 0))
+      (pollen--put-text-property-at (match-beginning 0) "."))
     (when (and tag (string-equal (pollen--tag-name tag) ";") beg end)
-      (pollen--mark-comment-delimiter-at beg "< bn")
-      (pollen--mark-comment-delimiter-at end "> bn")
-      (when (< end pos)
-        ;; previous comment is not propertized yet, do it again
-        (pollen--propertize-comment)))))
+      (message "2. mark comment %S" tag)
+      (pollen--put-text-property-at beg "< bn")
+      (pollen--put-text-property-at end "> bn"))))
 
 
+;; Caveat: call (syntax-ppss (match-beginning 0)) will cause infinite loop.
 (defconst pollen--syntax-propertize-function
   (syntax-propertize-rules
-   ("◊;{" (0 (ignore
-              (pollen--propertize-comment))))
-   ("}" (0 (when (nth 7 (syntax-ppss))
+   ("◊;{"
+    (0
+     (let ((beg-ppss (prog2
+                         (backward-char 3)
+                         (syntax-ppss)
+                       (forward-char 3))))
+       (unless (and (nth 4 beg-ppss)
+                    (null (nth 7 beg-ppss)))
+         ;; first unmark ; to normal punctuation
+         (pollen--propertize-comment)
+         ))))
+   ("}" (0 (when (or (equal 1 (nth 7 (syntax-ppss)))
+                     (null (nth 4 (syntax-ppss))))
+             ;; Do propertize only when } is in comments starting with ;{,
+             ;; or not in a comment
              ;; when modifying text at the same line of the comment
              ;; closing "}", its text property will be cleaned. Mark
              ;; "}" as a comment delimiter again.
-             (let ((end (match-end 0)))
-               (save-excursion
-                 (let ((parse-sexp-lookup-properties nil))
+             (message "1. } at pos %d tiggered. " (point))
+             (save-excursion
+               (let ((parse-sexp-lookup-properties nil))
+                 (ignore-errors
                    (backward-sexp 1)
-                   (when (char-equal ?\; (char-before))
+                   (when (char-equal (char-before) ?\;)
                      ;; if its counterpart is a start pos of comment,
                      ;; mark it as comment end
-                     (pollen--mark-comment-delimiter-at (1- end) "> bn"))))))))))
+                     (message "1. mark }.")
+                     (pollen--put-text-property-at (match-beginning 0) "> bn"))))))))))
+
+(defvar pollen-syntax-table
+  (let ((tb (make-syntax-table)))
+    (modify-syntax-entry pollen-command-char-code ". 1")
+    (modify-syntax-entry ?\; ". 2")
+    (modify-syntax-entry ?\n ">")
+    tb))
 
 (define-derived-mode pollen-mode fundamental-mode
   "pollen"
@@ -289,7 +316,7 @@ Keybindings for editing pollen file."
   ;; syntax highlights
   (set (make-local-variable 'parse-sexp-ignore-comments) nil)
   (setq-local parse-sexp-lookup-properties nil)
-
+  (set-syntax-table pollen-syntax-table)
   (set (make-local-variable 'font-lock-defaults)
        '((pollen-highlights) nil nil))
   (set (make-local-variable 'syntax-propertize-function)
