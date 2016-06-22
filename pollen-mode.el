@@ -232,12 +232,15 @@ pollen."
     map
     ))
 
+(defconst minor-mode-indicator
+  (concat " " pollen-command-char-target "/" pollen-command-char))
+
 (define-minor-mode pollen-minor-mode
   "pollen minor mode.
 
 Keybindings for editing pollen file."
   nil
-  " PM" ; TODO: better name @->loz
+  minor-mode-indicator
   :keymap pollen-mode-map
   :group 'pollen)
 
