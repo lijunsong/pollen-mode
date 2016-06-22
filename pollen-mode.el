@@ -155,14 +155,11 @@ prior to current tag."
           (t
            ;; search backward
            (save-excursion
-             (let (result
-                   (ttt 0))
+             (let (result)
                (while (and (null result)
                            (progn
                              (skip-chars-backward  "^{}")
-                             (not (= (point) (point-min))))
-                           (< ttt 10))
-                 (setq ttt (1+ ttt))
+                             (not (= (point) (point-min)))))
                  (cond ((char-equal ?\} (char-before))
                         (backward-sexp 1))
                        ((char-equal ?\{ (char-before))
@@ -253,25 +250,25 @@ Keybindings for editing pollen file."
 
 (defun pollen--put-text-property-at (pos ty)
   "A warper for put at POS and (POS+1) text property of comment type TY."
-  (put-text-property pos (1+ pos) 'syntax-table (string-to-syntax ty)))
+  (if (null ty)
+      (put-text-property pos (1+ pos) 'syntax-table nil)
+    (put-text-property pos (1+ pos) 'syntax-table (string-to-syntax ty))))
 
-(defun pollen--propertize-comment ()
-  "Fix pollen comments in syntax table.
-Return t if propertize actually takes place, nil otherwise."
-  (let* ((pos (match-end 0))
-         (tag (pollen--get-current-tagobj))
+(defun pollen--propertize-comment (semicolon-pos)
+  "Fix pollen comments in syntax table at given SEMICOLON-POS."
+  (goto-char semicolon-pos)
+  ;; (assert (equal (char-after semicolon-pos) ?\;))
+  (let* ((tag (pollen--get-current-tagobj))
          (beg (pollen--tag-lbraces tag))
          (end (pollen--tag-rbraces tag)))
     (when end
-      (message "2. unmark ; at %d" (match-beginning 0))
-      (pollen--put-text-property-at (match-beginning 0) "."))
+      (pollen--put-text-property-at semicolon-pos "."))
     (when (and tag (string-equal (pollen--tag-name tag) ";") beg end)
-      (message "2. mark comment %S" tag)
       (pollen--put-text-property-at beg "< bn")
       (pollen--put-text-property-at end "> bn"))))
 
-
 ;; Caveat: call (syntax-ppss (match-beginning 0)) will cause infinite loop.
+;; Caveat: jump back without using save-excursion will cause infinite loop.
 (defconst pollen--syntax-propertize-function
   (syntax-propertize-rules
    ("◊;{"
@@ -283,25 +280,25 @@ Return t if propertize actually takes place, nil otherwise."
        (unless (and (nth 4 beg-ppss)
                     (null (nth 7 beg-ppss)))
          ;; first unmark ; to normal punctuation
-         (pollen--propertize-comment)
+         (pollen--propertize-comment (1+ (match-beginning 0)))
          ))))
-   ("}" (0 (when (or (equal 1 (nth 7 (syntax-ppss)))
-                     (null (nth 4 (syntax-ppss))))
-             ;; Do propertize only when } is in comments starting with ;{,
-             ;; or not in a comment
-             ;; when modifying text at the same line of the comment
-             ;; closing "}", its text property will be cleaned. Mark
-             ;; "}" as a comment delimiter again.
-             (message "1. } at pos %d tiggered. " (point))
-             (save-excursion
-               (let ((parse-sexp-lookup-properties nil))
-                 (ignore-errors
-                   (backward-sexp 1)
-                   (when (char-equal (char-before) ?\;)
-                     ;; if its counterpart is a start pos of comment,
-                     ;; mark it as comment end
-                     (message "1. mark }.")
-                     (pollen--put-text-property-at (match-beginning 0) "> bn"))))))))))
+   ("}" (0
+         (save-excursion
+           (let ((parse-sexp-lookup-properties nil)
+                 (ppss (syntax-ppss)))
+             (ignore-errors
+               (backward-sexp 1)
+               (when (char-equal (char-before (point)) ?\;)
+                 (cond ((equal 1 (nth 7 ppss))
+                        ;; When } is in comment starting with ;{, mark
+                        ;; it as endcomment.  When modifying text at
+                        ;; the same line as the endcomment "}",
+                        ;; its text property will be cleaned. Mark "}"
+                        ;; as a comment delimiter again.
+                        (pollen--put-text-property-at (match-beginning 0) "> bn"))
+                       ((null (nth 4 ppss))
+                        ;; Not in a comment, so add comment
+                        (pollen--propertize-comment (1- (point)))))))))))))
 
 (defvar pollen-syntax-table
   (let ((tb (make-syntax-table)))
@@ -313,9 +310,8 @@ Return t if propertize actually takes place, nil otherwise."
 (define-derived-mode pollen-mode fundamental-mode
   "pollen"
   "Major mode for pollen file"
-  ;; syntax highlights
   (set (make-local-variable 'parse-sexp-ignore-comments) nil)
-  (setq-local parse-sexp-lookup-properties nil)
+  (set (make-local-variable 'parse-sexp-lookup-properties) nil)
   (set-syntax-table pollen-syntax-table)
   (set (make-local-variable 'font-lock-defaults)
        '((pollen-highlights) nil nil))
