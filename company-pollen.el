@@ -8,6 +8,7 @@
 ;; - Generate annotation.
 ;; - Remove pollen.rkt dependencies in racket code.  (require instead
 ;;   some .pm file in the same directory as the opened pollen file)
+;; - Error handling
 
 ;;; Code:
 
@@ -35,21 +36,32 @@
 
 
 (defun pollen-all-ids ()
-  "Return all user defined identifiers in `pollen.rkt'.
+  "Return all exported user defined identifiers in `pollen.rkt'.
+
+Return nil if identifiers not available (e.g. pollen.rkt has errors)
 
 Note: ID is a pair (identifier . FROM-MODULE)."
-  (if (file-exists-p "pollen.rkt")
-      (shell-command-to-string
-       (concat "racket -e '" pollen-fetch-id-code "'"))
-    '()))
+  ;; TODO error handling here.
+  (when (file-exists-p "pollen.rkt")
+    (let ((ids-str (shell-command-to-string
+                    (concat "racket -e '" pollen-fetch-id-code "'"))))
+      (read ids-str))))
 
-(defvar pollen-id-caches nil
+(defvar-local pollen-id-caches nil
   "Cache for pollen identifiers.")
+
+(defvar-local pollen-id-cache-initialized nil
+  "Non-nil if `pollen-id-caches' has been initialized.")
+
 
 (defun pollen-tag-completions ()
   "Return a list of avaiable pollen tags."
-  (if (null pollen-id-caches)
-      (setq pollen-id-caches (read (pollen-all-ids))))
+  (when (null pollen-id-cache-initialized)
+    (message "Initialize company pollen backend ...")
+    (setq pollen-id-cache-initialized t)
+    (let ((ids (pollen-all-ids)))
+      (setq pollen-id-caches ids))
+    (message "Done."))
   pollen-id-caches)
 
 (defun pollen-find-tag-fuzzy-match (prefix candidate)
@@ -60,23 +72,23 @@ Note: ID is a pair (identifier . FROM-MODULE)."
 
 (defun pollen-find-tag-info (prefix)
   "Given a PREFIX, return tag info."
-  (message "called")
   (remove-if-not
    (lambda (info)
-     (message "fuzz match prefix %S with info %S" prefix info)
      (pollen-find-tag-fuzzy-match prefix (car info)))
    (pollen-tag-completions)))
 
 (defun company-pollen-backend (command &optional arg &rest ignored)
-  "The main function for backend."
-  (interactive (list 'interactive))
+  "The main function for backend.
 
+If pollen identifiers not available, let other backends take over."
+  (interactive (list 'interactive))
+  (pollen-tag-completions) ; initialize tag list
   (case command
     (interactive (company-begin-backend 'company-pollen-backend))
     (prefix (and (eq major-mode 'pollen-mode)
+                 (and pollen-id-cache-initialized pollen-id-caches)
                  (company-grab-symbol)))
     (candidates
-     (message "candidate %S" (pollen-find-tag-info arg))
      (mapcar 'car (pollen-find-tag-info arg)))))
 
 (add-to-list 'company-backends 'company-pollen-backend)
