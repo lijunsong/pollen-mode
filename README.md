@@ -2,14 +2,16 @@
 
 An Emacs major mode for editing [pollen file](http://docs.racket-lang.org/pollen/).
 
-The major mode provides font locking for
+The major mode provides font locks for
 
 - malformed (dangling) command character
 - comment
 - tag functions
 
-This file also provides keybindings in a minor mode for editing
-pollen files.
+These files also provide
+
+- Keybindings in a minor mode for editing pollen files.
+- A company-moe backend for tag function completions.
 
 # Editing assistant
 
@@ -39,16 +41,28 @@ generating. When opens pollen preprocess file, Emacs will
 automatically turn on pollen minor mode for the buffer, so that you
 won't lose any convenient keybindings in other major mode.
 
+## Auto Completions
+
+`company-pollen` is a company-mode backend for supporting identifier
+completions. It supports completing identifiers exported from
+`pollen.rkt`.
+
 # Use
 
-Place this file in your loading path and load it
+Place these files in your loading path and load it
 
 ```
 (require 'pollen-mode)
 ```
 
+To use completion, install `company-mode` and do
+
+```
+(require 'company-pollen)
+```
+
 Feedbacks and feature requests are welcome. I write with pollen-mode
-everyday and I'd like to hear what you think about that can improves
+everyday and I'd like to hear what you think about that can improve
 editing experience[1].
 
 [1] And I agree that pollen probably needs an IDE that really
