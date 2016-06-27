@@ -77,6 +77,14 @@ Note: ID is a pair (identifier . FROM-MODULE)."
      (pollen-find-tag-fuzzy-match prefix (car info)))
    (pollen-tag-completions)))
 
+(defun company-grab-pollen-tag ()
+  "Return tag name if point is on a pollen tag, nil otherwise.
+
+Note: this function uses one function from `pollen-mode'."
+  (let ((tag (pollen-tag-at-point t)))
+    (when tag
+      (substring tag 1))))
+
 (defun company-pollen-backend (command &optional arg &rest ignored)
   "The main function for backend.
 
@@ -87,7 +95,7 @@ If pollen identifiers not available, let other backends take over."
     (interactive (company-begin-backend 'company-pollen-backend))
     (prefix (and (eq major-mode 'pollen-mode)
                  (and pollen-id-cache-initialized pollen-id-caches)
-                 (company-grab-symbol)))
+                 (company-grab-pollen-tag)))
     (candidates
      (mapcar 'car (pollen-find-tag-info arg)))))
 
