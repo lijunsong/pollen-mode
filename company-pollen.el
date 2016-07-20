@@ -6,19 +6,17 @@
 
 ;; TODO:
 ;; - Generate annotation.
-;; - Remove pollen.rkt dependencies in racket code.  (require instead
-;;   some .pm file in the same directory as the opened pollen file)
-;; - Error handling
 
 ;;; Code:
 
 (require 'company)
 (require 'cl-lib)
 
-(defconst pollen-fetch-id-code
+(defun pollen-fetch-id-code (sample-file)
+  "Code to generate ids given pollen SAMPLE-FILE."
   (concat
-   "(require \"pollen.rkt\")"
-   "(define pollen-file \"pollen.rkt\")"
+   (format "(require \"%s\")" sample-file)
+   (format "(define pollen-file \"%s\")" sample-file)
    "(define-values (l1 l2) (module->exports pollen-file))"
    "(define (get-module-path mod-idx)
   (define-values (path sub) (module-path-index-split mod-idx))
@@ -34,35 +32,69 @@
    "(printf \"~S\" (append (map id-info (rest (first l1)))
                            (map id-info (rest (first l2)))))"))
 
+(defun pollen-fetch-id (pollen-file-path)
+  "Helper function to async fetch ids from racket file POLLEN-FILE-PATH.
 
-(defun pollen-all-ids ()
-  "Return all exported user defined identifiers in `pollen.rkt'.
+This function updates pollen-id-cache-initialized and
+pollen-id-cache, and then delete `POLLEN-FILE-PATH`"
+  ;; Because the code that fetches ID is running async, it is possible
+  ;; this function is called multiple times during its long
+  ;; running. As soon as it runs, we set pollen-id-cache-initialized
+  ;; to true to prevent its second run.
+  (unless pollen-id-cache-initialized
+    (setq pollen-id-cache-initialized t)
+    (let* ((process-buf-name "*pollenid*")
+           (cmd-dir (file-name-directory pollen-file-path))
+           (pollen-file-name (file-name-nondirectory pollen-file-path))
+           (default-directory (file-name-as-directory cmd-dir)))
+      ;; clean *pollenid* buffer if exists
+      (when (get-buffer process-buf-name)
+        (kill-buffer process-buf-name))
+      ;; start process and sentinel
+      (let ((process
+             (start-process "pollenid" process-buf-name "racket" "-e"
+                            (pollen-fetch-id-code pollen-file-name)))
+            (process-sentinel
+             `(lambda (proc event)
+                (let ((content (save-current-buffer
+                                 (set-buffer ,process-buf-name)
+                                 (buffer-string))))
+                  (cond ((string-match-p "finished" event)
+                         (setq pollen-id-cache (read content))
+                         (message "Company pollen initialized."))
+                        (t     ;(string-match-p "\\(exited\\|dump\\)" event)
+                         (setq pollen-id-cache nil)
+                         (message "Errors in tag list init:\n%s" content)))
+                  (when (eq (process-status proc) 'exit)
+                    (when (get-buffer ,process-buf-name)
+                      (kill-buffer ,process-buf-name))
+                    (delete-file ,pollen-file-path))))))
+        (set-process-sentinel process process-sentinel)))))
 
-Return nil if identifiers not available (e.g. pollen.rkt has errors)
+(defun pollen-initialize-id-cache ()
+  "Asynchronously update pollen-id-cache."
+  (when (and (eq major-mode 'pollen-mode)
+             buffer-file-name
+             (null pollen-id-cache-initialized))
+    (message "Initializing company pollen backend ...")
+    (let* ((current-path (file-name-directory (buffer-file-name)))
+           (tmp-path (concat current-path "pollen-mode-get-ids.rkt")))
+      (with-temp-file tmp-path
+        (insert "#lang pollen"))
+      (pollen-fetch-id tmp-path))))
 
-Note: ID is a pair (identifier . FROM-MODULE)."
-  ;; TODO error handling here.
-  (when (file-exists-p "pollen.rkt")
-    (let ((ids-str (shell-command-to-string
-                    (concat "racket -e '" pollen-fetch-id-code "'"))))
-      (read ids-str))))
+(defvar-local pollen-id-cache nil
+  "Cache for pollen identifiers.
 
-(defvar-local pollen-id-caches nil
-  "Cache for pollen identifiers.")
+ID is a list of pairs (identifier . FROM-MODULE)")
 
 (defvar-local pollen-id-cache-initialized nil
-  "Non-nil if `pollen-id-caches' has been initialized.")
-
+  "Non-nil if `pollen-id-cache' has been initialized.")
 
 (defun pollen-tag-completions ()
-  "Return a list of avaiable pollen tags."
-  (when (null pollen-id-cache-initialized)
-    (message "Initialize company pollen backend ...")
-    (setq pollen-id-cache-initialized t)
-    (let ((ids (pollen-all-ids)))
-      (setq pollen-id-caches ids))
-    (message "Done."))
-  pollen-id-caches)
+  "Return the cached ids."
+  (when pollen-id-cache-initialized
+    pollen-id-cache))
 
 (defun pollen-find-tag-fuzzy-match (prefix candidate)
   "Fuzzy match PREFIX with CANDIDATE."
@@ -90,11 +122,11 @@ Note: this function uses one function from `pollen-mode'."
 
 If pollen identifiers not available, let other backends take over."
   (interactive (list 'interactive))
-  (pollen-tag-completions) ; initialize tag list
+  (pollen-initialize-id-cache)
   (case command
     (interactive (company-begin-backend 'company-pollen-backend))
     (prefix (and (eq major-mode 'pollen-mode)
-                 (and pollen-id-cache-initialized pollen-id-caches)
+                 (and pollen-id-cache-initialized pollen-id-cache)
                  (company-grab-pollen-tag)))
     (candidates
      (mapcar 'car (pollen-find-tag-info arg)))))
