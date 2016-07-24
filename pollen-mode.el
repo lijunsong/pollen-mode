@@ -26,7 +26,9 @@
 (defvar pollen-command-char (char-to-string pollen-command-char-code))
 (defvar pollen-command-char-target "@")
 
-(defvar pollen-racket-id-reg "[a-zA-Z][a-zA-Z0-9-]*")
+;; Racket identifier see racket document syntax-overview 2.2.3.
+(defvar pollen-racket-id-reg "[^][:space:]\n()[{}\",'`;#|\\]+")
+
 (defvar pollen-header-reg "^#lang .*$")
 
 (defun pollen-gen-highlights (command-char)
@@ -99,17 +101,15 @@ Note: this function jumps over the \"|\" of \"|{\"."
 
 Note: This function returns nil if the point is not on a tag name
 starting with command char."
-  (let* ((forward-allowed "A-Za-z0-9-*=:$")
-         (backward-allowed (concat
-                            pollen-command-char
-                            forward-allowed ";|"))
+  ;; Specify \n explicitly because \n is not in [:space:] syntax class anymore.
+  (let* ((skip-allowed "^[:space:]()[]{}\",'`;#|\\\n")
          (beg  (save-excursion
-                 (skip-chars-backward backward-allowed)
+                 (skip-chars-backward skip-allowed)
                  (if (looking-at pollen-command-char)
                      (point)
                    nil)))
          (end (save-excursion
-                (skip-chars-forward forward-allowed)
+                (skip-chars-forward skip-allowed)
                 (if (and beg (eq (- (point) beg) 1) (looking-at ";"))
                     (1+ (point))
                   (point)))))
@@ -232,7 +232,7 @@ pollen."
     map
     ))
 
-(defconst minor-mode-indicator
+(defconst pollen-minor-mode-indicator
   (concat " " pollen-command-char-target "/" pollen-command-char))
 
 (define-minor-mode pollen-minor-mode
@@ -240,7 +240,7 @@ pollen."
 
 Keybindings for editing pollen file."
   nil
-  minor-mode-indicator
+  pollen-minor-mode-indicator
   :keymap pollen-mode-map
   :group 'pollen)
 
