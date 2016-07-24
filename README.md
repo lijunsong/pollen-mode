@@ -13,15 +13,15 @@ These files also provide
 - Key-bindings in a minor mode for editing pollen files.
 - A company-mode backend for tag function completions.
 
-# Editing assistant
+# Editing assistance
 
 ## Lozenge
 
 Pollen mode makes it easy to insert lozenge in a non-disturbing way:
 insert `@` and hit the tab. `@` will be turned into lozenge.
 
-Along with tag function completions (see below), it is so easy to
-insert tag functions now.
+Along with tag function completions (see below), it is easier to
+insert *correct* tag functions now.
 
 ## Block editing
 
