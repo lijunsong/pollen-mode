@@ -380,10 +380,13 @@ Server output is stored in buffer *pollen-server*."
                (quit-process proc))
              ;; provide new bindings for new actions.
              (local-set-key (kbd "q") 'kill-buffer-and-window)
-             (local-set-key (kbd "r") 'pollen-server-restart)
+             (local-set-key (kbd "r")
+                            (lambda ()
+                              (interactive)
+                              (pollen-server-start pollen-server--previous-root-dir)))
              (setq-local header-line-format
                          (substitute-command-keys
-                          "Exited. Kill the buffer with <\\[kill-buffer-and-window]>. Resume the server with <\\[pollen-server-restart]>"))
+                          "Exited. Kill the buffer with <\\[kill-buffer-and-window]>. Resume the server with <r>"))
              (let ((inhibit-read-only t)
                    (msg
                     (cond ((string-match-p "finished" event)
@@ -406,7 +409,7 @@ Server output is stored in buffer *pollen-server*."
       ;; now operate on the server buffer.
       (read-only-mode 1)
       (local-set-key (kbd "C-c C-c") 'pollen-server-stop)
-      (local-set-key (kbd "h") 'delete-window)
+      (local-set-key (kbd "q") 'delete-window)
       ;; make the buffer auto scroll
       (set (make-local-variable 'window-point-insertion-type) t)
       ;; remember this directory for restarting the server.
@@ -421,23 +424,6 @@ Server output is stored in buffer *pollen-server*."
   (let ((proc (get-buffer-process pollen-server--buffer-name)))
     (when proc
       (interrupt-process proc))))
-
-(defun pollen-server-restart ()
-  "Restart the pollen server.
-
-This function will try to stop the server before starting it.  If
-the server has started before and exited now, this function will
-reuse project root directory if it is available.  Otherwise, this
-function behaves the same as `pollen-server-stop' followed by
-`pollen-server-start'"
-  (interactive)
-  (pollen-server-stop)
-  (if (get-buffer pollen-server--buffer-name)
-      (with-current-buffer pollen-server--buffer-name
-        (if (null pollen-server--previous-root-dir)
-            (call-interactively 'pollen-server-start)
-          (pollen-server-start pollen-server--previous-root-dir)))
-    (call-interactively 'pollen-server-start)))
 
 (provide 'pollen-mode)
 
