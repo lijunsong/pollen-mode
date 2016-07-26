@@ -48,15 +48,26 @@ modules you're editing. The completion works even if you have nested
 directory as the completion facility respects pollen configuration
 search path.
 
+## Server Integration
+
+`pollen-mode` also provides functions to start, stop and resume pollen
+server. Most of actions need just one keystroke once the server has
+started. Start the server by `pollen-server-start`, and follow
+instructions on the server window.
+
 # Use
 
-Notes: I am preparing a pollen-mode package.
+*Notes: I am preparing a pollen-mode package.*
 
-Place these files in your loading path and load it
+To use the major mode and pollen server, place these files in your
+loading path and load it
 
 ```
 (require 'pollen-mode)
 ```
+
+To start the server, `M-x pollen-server-start` is the start point, and
+then the server buffer has indicator for your next step.
 
 To use completion, install `company-mode` and do
 
