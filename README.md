@@ -25,12 +25,9 @@ insert *correct* tag functions now.
 
 ## Block editing
 
-Pollen mode provides a key-binding for editing blocks. `C-c '` will put
-the block under cursor into another buffer for special editing. You
-can turn on any mode you want in the new buffer without interfering
-original one.
-
-Block editing is still improving, but it just works for now.
+Pollen mode supports block editing. `C-c '` will put the block under
+cursor into another buffer for special editing. You can turn on any
+mode you want in the new buffer without interfering original one.
 
 ## Editing preprocess file
 

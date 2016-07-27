@@ -205,25 +205,34 @@ Return t if succeed, nil otherwise."
 
 When the cursor inside any block enclosed by braces, this
 function will pop up another buffer containing only the content
-of that block. Feel free to change the new buffer's mode.
-
-To exit the editing, just kill the newly poped out buffer. It is
-less powerful, but this working flow provide flexibility for
-pollen."
+of that block. Feel free to change the new buffer's mode."
   (interactive)
   (let ((tag (pollen--get-current-tagobj)))
     (if (null tag)
         (message "Are you really inside a block?")
       (let ((l (pollen--tag-lbraces tag))
-            (r (pollen--tag-rbraces tag)))
+            (r (pollen--tag-rbraces tag))
+            (tag-name (pollen--tag-name tag)))
         (if (and l r)
             (let* ((l (1+ l))
-                   (text (buffer-substring-no-properties l r)))
+                   (text (buffer-substring-no-properties l r))
+                   ;; for restore window
+                   (win-config (current-window-configuration)))
               (let* ((cur-buf (current-buffer))
                      (new-buf (make-indirect-buffer cur-buf "*pollen-editing*")))
                 (switch-to-buffer-other-window new-buf)
-                (narrow-to-region l r)))
-          (message "Unbalanced braces."))))))
+                ;; working on the new buffer from this point
+                (local-set-key (kbd "C-c '")
+                               `(lambda ()
+                                  (interactive)
+                                  (kill-buffer-and-window)
+                                  (set-window-configuration ,win-config)))
+                (narrow-to-region l r)
+                (setq-local header-line-format
+                            (substitute-command-keys
+                             (format "Editing %s%s. Close the window with <C-c '>"
+                                     pollen-command-char tag-name)))))
+          (message "Tag %s%s has unbalanced braces." pollen-command-char tag-name))))))
 
 (defvar pollen-mode-map
   (let ((map (make-sparse-keymap)))
