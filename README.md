@@ -23,11 +23,15 @@ insert `@` and hit the tab. `@` will be turned into lozenge.
 Along with tag function completions (see below), it is easier to
 insert *correct* tag functions now.
 
+![Lozenge tag completion](./images/lozenge-tag-completions.gif?raw=true "Lozenge tag completion")
+
 ## Block editing
 
 Pollen mode supports block editing. `C-c '` will put the block under
 cursor into another buffer for special editing. You can turn on any
 mode you want in the new buffer without interfering original one.
+
+![Block Editing](./images/block-editing.gif?raw=true "Block Editing")
 
 ## Editing preprocess file
 
@@ -51,6 +55,8 @@ search path.
 server. Most of actions need just one keystroke once the server has
 started. Start the server by `pollen-server-start`, and follow
 instructions on the server window.
+
+![Pollen Server](./images/pollen-server.gif?raw=true "Pollen Server")
 
 # Use
 
