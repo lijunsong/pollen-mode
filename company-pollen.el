@@ -1,6 +1,14 @@
 ;;; company-pollen.el --- company-mode completion backend for pollen
 
 ;; Copyright (C) 2016 Junsong Li
+;; Author: Junsong Li <ljs.darkfish AT GMAIL>
+;; Maintainer: Junsong Li
+;; Created: 22 June 2016
+;; Keywords: languages, pollen, pollenpub, company
+;; License: LGPL
+;; Version: 0.2
+;; Package-Requires: ((company "0.9.0"))
+;; Distribution: This file is not part of Emacs
 
 ;;; Commentary:
 

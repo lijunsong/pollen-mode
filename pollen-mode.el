@@ -1,25 +1,28 @@
 ;;; pollen-mode.el --- major mode for editing pollen files
-;;
+
 ;; Copyright (C) 2016 Junsong Li
 ;; Author: Junsong Li <ljs.darkfish AT GMAIL>
 ;; Maintainer: Junsong Li
 ;; Created: 11 June 2016
 ;; Keywords: languages, pollen, pollenpub
 ;; License: LGPL
+;; Version: 1.0
+;; Package-Requires: ((emacs "24.1"))
 ;; Distribution: This file is not part of Emacs
-;;
+
 ;;; Commentary:
 ;; This file provides editing assistant for pollen, the digital-publishing
 ;; tools
-;;
+
 ;; Glossary:
 ;; - Command Char: also referred to as the lozenge
 ;; - Top Level: A position NOT inside braces
 ;; - Pollen Tag: command char followed by racket id or char `;'
-;;
+
 ;; TODO:
 ;; - provide a brace matcher
 ;; - support comment-dwim
+
 ;;; Code:
 
 (require 'cl-lib)
