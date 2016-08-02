@@ -112,7 +112,7 @@ ID is a list of pairs (identifier . FROM-MODULE)")
 
 (defun pollen-find-tag-info (prefix)
   "Given a PREFIX, return tag info."
-  (remove-if-not
+  (cl-remove-if-not
    (lambda (info)
      (pollen-find-tag-fuzzy-match prefix (car info)))
    (pollen-tag-completions)))
@@ -131,7 +131,7 @@ Note: this function uses one function from `pollen-mode'."
 If pollen identifiers not available, let other backends take over."
   (interactive (list 'interactive))
   (pollen-initialize-id-cache)
-  (case command
+  (cl-case command
     (interactive (company-begin-backend 'company-pollen-backend))
     (prefix (and (eq major-mode 'pollen-mode)
                  (and pollen-id-cache-initialized pollen-id-cache)
