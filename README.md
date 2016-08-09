@@ -27,7 +27,7 @@ insert *correct* tag functions now.
 
 ## Block editing
 
-Pollen mode supports block editing. `C-c '` will put the block under
+Pollen mode supports block editing. `C-c C-c` will put the block under
 cursor into another buffer for special editing. You can turn on any
 mode you want in the new buffer without interfering original one.
 
