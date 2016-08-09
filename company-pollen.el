@@ -9,8 +9,10 @@
 ;; Version: 0.2
 ;; Package-Requires: ((company "0.9.0"))
 ;; Distribution: This file is not part of Emacs
+;; URL: https://github.com/lijunsong/pollen-mode
 
 ;;; Commentary:
+;; company pollen provides pollen tag completion for pollen-mode.
 
 ;; TODO:
 ;; - Generate annotation.

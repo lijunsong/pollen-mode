@@ -7,12 +7,13 @@
 ;; Keywords: languages, pollen, pollenpub
 ;; License: LGPL
 ;; Version: 1.0
-;; Package-Requires: ((emacs "24.1"))
+;; Package-Requires: ((emacs "24.3") (cl-lib "0.5"))
 ;; Distribution: This file is not part of Emacs
+;; URL: https://github.com/lijunsong/pollen-mode
 
 ;;; Commentary:
-;; This file provides editing assistant for pollen, the digital-publishing
-;; tools
+;; Pollen mode provides editing assistant for pollen, the
+;; digital-publishing tool.
 
 ;; Glossary:
 ;; - Command Char: also referred to as the lozenge
@@ -20,7 +21,7 @@
 ;; - Pollen Tag: command char followed by racket id or char `;'
 
 ;; TODO:
-;; - provide a brace matcher
+;; - provide a parenthesis matcher
 ;; - support comment-dwim
 
 ;;; Code:
@@ -234,24 +235,22 @@ of that block. Feel free to change the new buffer's mode."
                           (new-buf (make-indirect-buffer cur-buf buff-name)))
                      (switch-to-buffer-other-window new-buf)
                      ;; working on the new buffer from this point
-                     (local-set-key (kbd "C-c '")
+                     (local-set-key (kbd "C-c C-c")
                                     `(lambda ()
                                        (interactive)
                                        (kill-buffer-and-window)
                                        (set-window-configuration ,win-config)))
                      (narrow-to-region l r)
                      (setq-local header-line-format
-                                 (substitute-command-keys
-                                  (format "Editing %s%s. Close the window with <C-c '>"
-                                          pollen-command-char tag-name)))))
+                                 (format "Editing %s%s. Close the window with <C-c C-c>"
+                                         pollen-command-char tag-name))))
                (message "Tag %s%s has unbalanced braces." pollen-command-char tag-name)))))))
 
 (defvar pollen-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "TAB") 'pollen-insert-tab-or-command-char)
-    (define-key map (kbd "C-c '") 'pollen-edit-block-other-window)
-    map
-    ))
+    (define-key map (kbd "C-c C-c") 'pollen-edit-block-other-window)
+    map))
 
 (defconst pollen-minor-mode-indicator
   (concat " " pollen-command-char-target "/" pollen-command-char))
