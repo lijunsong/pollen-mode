@@ -58,21 +58,28 @@ instructions on the server window.
 
 ![Pollen Server](./images/pollen-server.gif?raw=true "Pollen Server")
 
+#installation
+
+This package is available on Melpa (`M-x list-packages`). Search for
+`pollen-mode` and `company-pollen`.
+
+Advanced users can also download the source from
+https://github.com/lijunsong/pollen-mode
+
 # Use
 
-*Notes: I am preparing a pollen-mode package.*
+If you install from the package manager, you're done. To start the server,
+`M-x pollen-server-start` is the start point, and then the server buffer has
+indicator for your next step.
 
-To use the major mode and pollen server, place these files in your
-loading path and load it
+If you download from the source, to use the major mode and pollen server, place
+these files in your loading path and do
 
 ```
 (require 'pollen-mode)
 ```
 
-To start the server, `M-x pollen-server-start` is the start point, and
-then the server buffer has indicator for your next step.
-
-To use completion, install `company-mode` and do
+To use completion, do
 
 ```
 (require 'company-pollen)
