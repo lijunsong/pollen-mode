@@ -7,7 +7,7 @@
 ;; Keywords: languages, pollen, pollenpub, company
 ;; License: LGPL
 ;; Version: 0.2
-;; Package-Requires: ((company "0.9.0"))
+;; Package-Requires: ((company "0.9.0") (pollen-mode "1.0"))
 ;; Distribution: This file is not part of Emacs
 ;; URL: https://github.com/lijunsong/pollen-mode
 
