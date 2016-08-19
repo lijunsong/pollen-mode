@@ -68,12 +68,7 @@ https://github.com/lijunsong/pollen-mode
 
 # Use
 
-If you install from the package manager, you're done. To start the server,
-`M-x pollen-server-start` is the start point, and then the server buffer has
-indicator for your next step.
-
-If you download from the source, to use the major mode and pollen server, place
-these files in your loading path and do
+To use the major mode, minor mode, and pollen server, do
 
 ```
 (require 'pollen-mode)
@@ -85,9 +80,9 @@ To use completion, do
 (require 'company-pollen)
 ```
 
-Feedbacks and feature requests are welcome. I write with pollen-mode
-everyday and I'd like to hear what you think about that can improve
-editing experience[1].
+To start the server, run `M-x pollen-server-start`, and then the server buffer
+has indicator for your next step.
 
-[1] And I agree that pollen probably needs an IDE that really
-understands racket code to make editing experience awesome.
+Feedbacks and feature requests are very welcome. I write with pollen-mode
+everyday and I'd like to hear your thoughts on how to improve our editing
+experience.
