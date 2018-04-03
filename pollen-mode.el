@@ -330,6 +330,7 @@ Keybindings for editing pollen file."
     (modify-syntax-entry ?\n ">")
     tb))
 
+;;;###autoload
 (define-derived-mode pollen-mode fundamental-mode
   "pollen"
   "Major mode for pollen file"
