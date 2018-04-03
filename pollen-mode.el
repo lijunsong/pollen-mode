@@ -347,6 +347,7 @@ Keybindings for editing pollen file."
 
 ;;;; Bind pollen mode with file suffix
 (add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))
+(add-to-list 'auto-mode-alist '("\\.pmd$" . pollen-mode))
 (add-to-list 'auto-mode-alist '("\\.pp$" pollen-mode t))
 (add-to-list 'auto-mode-alist '("\\.p$"  pollen-mode t))
 
