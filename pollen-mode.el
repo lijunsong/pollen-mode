@@ -325,9 +325,9 @@ Keybindings for editing pollen file."
 
 (defvar pollen-syntax-table
   (let ((tb (make-syntax-table)))
-    (modify-syntax-entry pollen-command-char-code ". 1")
-    (modify-syntax-entry ?\; ". 2")
-    (modify-syntax-entry ?\n ">")
+    (modify-syntax-entry pollen-command-char-code ". 1" tb)
+    (modify-syntax-entry ?\; ". 2" tb)
+    (modify-syntax-entry ?\n ">" tb)
     tb))
 
 ;;;###autoload
