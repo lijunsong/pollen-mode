@@ -17,8 +17,13 @@ These files also provide
 
 ## Lozenge
 
-Pollen mode makes it easy to insert lozenge in a non-disturbing way:
-insert `@` and hit the tab. `@` will be turned into lozenge.
+Pollen mode makes it easy to insert lozenge. `@` will be turned into
+lozenge. To insert `@`, press `@` twice. The preceding lozenge will
+be turned into an `@`.
+
+For the old behavior to insert the lozenge, (press `@` and then `TAB`),
+remove the binding for `@` and bind `TAB` to
+`pollen-insert-tab-or-command-char`.
 
 Along with tag function completions (see below), it is easier to
 insert *correct* tag functions now.
