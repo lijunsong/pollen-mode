@@ -186,6 +186,18 @@ the same ARG for indent"
          (insert pollen-command-char))
         (t (indent-for-tab-command arg))))
 
+(defun pollen-insert-target (&optional arg)
+  "Insert the command char or @ in the document.
+
+If the command char is not the preceding char, insert it, otherwise
+insert @."
+  (interactive)
+  (cond ((string= (string (preceding-char))
+                  pollen-command-char)
+         (delete-char -1)
+         (insert pollen-command-char-target))
+        (t (insert pollen-command-char))))
+
 (defun pollen--goto-enclosing-left-brace ()
   "Go to the left brace enclosing current point."
   (interactive)
@@ -248,7 +260,8 @@ of that block. Feel free to change the new buffer's mode."
 
 (defvar pollen-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "TAB") 'pollen-insert-tab-or-command-char)
+    (define-key map (kbd pollen-command-char-target)
+      'pollen-insert-target)
     (define-key map (kbd "C-c C-c") 'pollen-edit-block-other-window)
     map))
 
