@@ -268,6 +268,7 @@ of that block. Feel free to change the new buffer's mode."
 (defconst pollen-minor-mode-indicator
   (concat " " pollen-command-char-target "/" pollen-command-char))
 
+;;;###autoload
 (define-minor-mode pollen-minor-mode
   "pollen minor mode.
 
@@ -384,6 +385,7 @@ Keybindings for editing pollen file."
   "This variable caches project root directory.  It is set when
   `pollen-server-start' is called.")
 
+;;;###autoload
 (defun pollen-server-start (root-dir)
   "Start pollen server at the given ROOT-DIR.
 
