@@ -63,7 +63,7 @@ instructions on the server window.
 
 ![Pollen Server](./images/pollen-server.gif?raw=true "Pollen Server")
 
-#installation
+# Installation
 
 This package is available on Melpa (`M-x list-packages`). Search for
 `pollen-mode` and `company-pollen`.
