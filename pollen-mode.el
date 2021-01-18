@@ -359,10 +359,12 @@ Keybindings for editing pollen file."
   (add-hook 'after-change-major-mode-hook 'pollen-minor-mode-on t t))
 
 ;;;; Bind pollen mode with file suffix
-(add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))
-(add-to-list 'auto-mode-alist '("\\.pmd$" . pollen-mode))
-(add-to-list 'auto-mode-alist '("\\.pp$" pollen-mode t))
-(add-to-list 'auto-mode-alist '("\\.p$"  pollen-mode t))
+;;;###autoload
+(progn
+  (add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))
+  (add-to-list 'auto-mode-alist '("\\.pmd$" . pollen-mode))
+  (add-to-list 'auto-mode-alist '("\\.pp$" pollen-mode t))
+  (add-to-list 'auto-mode-alist '("\\.p$"  pollen-mode t)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pollen server interactions ;;
