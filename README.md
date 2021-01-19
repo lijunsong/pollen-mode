@@ -73,17 +73,37 @@ https://github.com/lijunsong/pollen-mode
 
 # Use
 
+## Installed via Melpa
+
+If you've installed the package from Melpa, you're ready to go. Open
+pollen files, and Emacs loads `pollen-mode` automatically. The current
+supported files are
+
+- `.pm`
+- `.pmd`
+- `.pp`
+- `.p`
+
+You can turn on minor mode to access the Lozenge in any other modes
+`M-x pollen-minor-mode`.
+
+## Installed from the Source
 To use the major mode, minor mode, and pollen server, do
 
 ```
 (require 'pollen-mode)
 ```
 
-To use completion, do
+## The company-mode
+
+Company mode is not autoloaded. Regardless of how you install the
+package, you'll need to require the package first.
 
 ```
 (require 'company-pollen)
 ```
+
+## Start Pollen Server
 
 To start the server, run `M-x pollen-server-start`, and then the server buffer
 has indicator for your next step.
