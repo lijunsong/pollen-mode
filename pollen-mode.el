@@ -14,6 +14,12 @@
 ;;; Commentary:
 ;; Pollen mode provides editing assistant for pollen, the
 ;; digital-publishing tool.
+;;
+;; See REAME for usage in detail.
+
+;;; Code:
+
+(require 'cl-lib)
 
 ;; Glossary:
 ;; - Command Char: also referred to as the lozenge
@@ -23,11 +29,6 @@
 ;; TODO:
 ;; - provide a parenthesis matcher
 ;; - support comment-dwim
-
-;;; Code:
-
-(require 'cl-lib)
-
 (defvar pollen-command-char-code ?\u25CA)
 (defvar pollen-command-char (char-to-string pollen-command-char-code))
 (defvar pollen-command-char-target "@")
@@ -173,26 +174,25 @@ prior to current tag."
                         (setq result (funcall make-tag)))))
                result))))))
 
-(defun pollen-insert-tab-or-command-char (&optional arg)
-  "Insert a tab or a command char in the document.
-
-Making it easy to insert a command char in the document.  If the
-preceding char is @, replace it with the command char.  ARG is
-the same ARG for indent"
-  (interactive)
-  (cond ((string= (string (preceding-char))
-                  pollen-command-char-target)
-         (delete-char -1)
-         (insert pollen-command-char))
-        (t (indent-for-tab-command arg))))
-
 (defun pollen-insert-target (&optional arg)
   "Insert the command char or @ in the document.
 
 If the command char is not the preceding char, insert it, otherwise
 insert @."
   (interactive)
-  (cond ((string= (string (preceding-char))
+  (cond ((use-region-p)
+         (let* ((region (cons (region-beginning) (region-end)))
+                (text (buffer-substring-no-properties
+                       (car region) (cdr region)))
+                cursor-final-pos)
+           (delete-region (car region) (cdr region))
+           (insert pollen-command-char)
+           (setq cursor-final-pos (point))
+           (insert "{")
+           (insert text)
+           (insert "}")
+           (goto-char cursor-final-pos)))
+        ((string= (string (preceding-char))
                   pollen-command-char)
          (delete-char -1)
          (insert pollen-command-char-target))
