@@ -15,7 +15,7 @@
 ;; Pollen mode provides editing assistant for pollen, the
 ;; digital-publishing tool.
 ;;
-;; See REAME for usage in detail.
+;; See README for usage in detail.
 
 ;;; Code:
 
@@ -29,11 +29,12 @@
 ;; TODO:
 ;; - provide a parenthesis matcher
 ;; - support comment-dwim
+
 (defvar pollen-command-char-code ?\u25CA)
 (defvar pollen-command-char (char-to-string pollen-command-char-code))
 (defvar pollen-command-char-target "@")
 
-;; Racket identifier see racket document syntax-overview 2.2.3.
+;; Racket identifier. See racket document syntax-overview 2.2.3.
 (defvar pollen-racket-id-reg "[^][:space:]\n()[{}\",'`;#|\\]+")
 
 (defvar pollen-header-reg "^#lang .*$")
@@ -56,7 +57,7 @@
   "Concat commond char to the given NAME."
   (concat pollen-command-char name))
 
-;;; Pollen model
+;;; Pollen tag struct.
 (defun pollen--make-tag (name lb rb)
   "Create tag object.
 
@@ -101,7 +102,7 @@ Note: this function jumps over the \"|\" of \"|{\"."
           (setq p (point)))))
     p))
 
-;; special case for things at point
+;; Special case for things at point.
 (put 'pollen--tag 'bounds-of-thing-at-point 'pollen--bounds-of-tag-at-point)
 (defun pollen--bounds-of-tag-at-point ()
   "Move point to the beginning of the current tag.
@@ -359,7 +360,7 @@ Keybindings for editing pollen file."
   ;; mode falls through)
   (add-hook 'after-change-major-mode-hook 'pollen-minor-mode-on t t))
 
-;;;; Bind pollen mode with file suffix
+;;;; Bind pollen mode with file suffix.
 ;;;###autoload
 (progn
   (add-to-list 'auto-mode-alist '("\\.pm$" . pollen-mode))
