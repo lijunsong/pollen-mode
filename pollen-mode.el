@@ -356,6 +356,10 @@ Keybindings for editing pollen file."
        '((pollen-highlights) nil nil))
   (set (make-local-variable 'syntax-propertize-function)
        pollen--syntax-propertize-function)
+  ;; Support for standard comments (comment-dwim, comment-region, etc.)
+  (set (make-local-variable 'comment-start)
+       (concat pollen-command-char ";"))
+  (set (make-local-variable 'comment-end) "")
   ;; make the minor mode available across all major modes (even if major
   ;; mode falls through)
   (add-hook 'after-change-major-mode-hook 'pollen-minor-mode-on t t))
