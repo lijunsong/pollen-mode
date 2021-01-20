@@ -14,6 +14,12 @@
 ;;; Commentary:
 ;; Pollen mode provides editing assistant for pollen, the
 ;; digital-publishing tool.
+;;
+;; See REAME for usage in detail.
+
+;;; Code:
+
+(require 'cl-lib)
 
 ;; Glossary:
 ;; - Command Char: also referred to as the lozenge
@@ -23,11 +29,6 @@
 ;; TODO:
 ;; - provide a parenthesis matcher
 ;; - support comment-dwim
-
-;;; Code:
-
-(require 'cl-lib)
-
 (defvar pollen-command-char-code ?\u25CA)
 (defvar pollen-command-char (char-to-string pollen-command-char-code))
 (defvar pollen-command-char-target "@")
